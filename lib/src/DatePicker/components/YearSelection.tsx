@@ -3,6 +3,7 @@ import withStyles, { WithStyles } from '@material-ui/core/styles/withStyles';
 import * as PropTypes from 'prop-types';
 import * as React from 'react';
 import { findDOMNode } from 'react-dom';
+import EventListener from 'react-event-listener';
 import { withUtils, WithUtilsProps } from '../../_shared/WithUtils';
 import { DateType, DomainPropTypes } from '../../constants/prop-types';
 import { MaterialUiPickersDate } from '../../typings/date';
@@ -17,6 +18,7 @@ export interface YearSelectionProps extends WithUtilsProps, WithStyles<typeof st
   disableFuture?: boolean | null | undefined;
   animateYearScrolling?: boolean | null | undefined;
   onYearChange?: (date: MaterialUiPickersDate) => void;
+  allowKeyboardControl?: boolean;
 }
 
 export class YearSelection extends React.PureComponent<YearSelectionProps> {
@@ -27,12 +29,14 @@ export class YearSelection extends React.PureComponent<YearSelectionProps> {
     onChange: PropTypes.func.isRequired,
     animateYearScrolling: PropTypes.bool,
     innerRef: PropTypes.any,
+    allowKeyboardControl: PropTypes.bool,
   };
 
   public static defaultProps = {
     animateYearScrolling: false,
     minDate: new Date('1900-01-01'),
     maxDate: new Date('2100-01-01'),
+    allowKeyboardControl: true,
   };
 
   public selectedYearRef?: React.ReactInstance = undefined;
@@ -71,12 +75,45 @@ export class YearSelection extends React.PureComponent<YearSelectionProps> {
     onChange(newDate);
   };
 
+  public shouldDisableYear = (year: MaterialUiPickersDate) => {
+    const { disablePast, disableFuture, utils } = this.props;
+    return (
+      (disablePast && utils.isBeforeYear(year, utils.date())) ||
+      (disableFuture && utils.isAfterYear(year, utils.date()))
+    );
+  };
+
+  public setYear = (year: MaterialUiPickersDate) => {
+    const { utils } = this.props;
+    if (year && !this.shouldDisableYear(year)) {
+      this.onYearSelect(utils.getYear(year));
+    }
+  };
+
+  public handleKeyDown = (event: KeyboardEvent) => {
+    const { date, utils } = this.props;
+    switch (event.key) {
+      case 'ArrowUp':
+        this.setYear(utils.addDays(date, -365));
+        break;
+      case 'ArrowDown':
+        this.setYear(utils.addDays(date, 365));
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+  };
+
   public render() {
-    const { minDate, maxDate, date, classes, disablePast, disableFuture, utils } = this.props;
+    const { allowKeyboardControl, minDate, maxDate, date, classes, utils } = this.props;
     const currentYear = utils.getYear(date);
 
     return (
       <div className={classes.container}>
+        {allowKeyboardControl && <EventListener target="window" onKeyDown={this.handleKeyDown} />}
+
         {utils.getYearRange(minDate, maxDate).map(year => {
           const yearNumber = utils.getYear(year);
           const selected = yearNumber === currentYear;
@@ -88,10 +125,7 @@ export class YearSelection extends React.PureComponent<YearSelectionProps> {
               value={yearNumber}
               onSelect={this.onYearSelect}
               ref={selected ? this.getSelectedYearRef : undefined}
-              disabled={
-                (disablePast && utils.isBeforeYear(year, utils.date())) ||
-                (disableFuture && utils.isAfterYear(year, utils.date()))
-              }
+              disabled={this.shouldDisableYear(year)}
             >
               {utils.getYearText(year)}
             </Year>

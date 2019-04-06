@@ -45,7 +45,7 @@ export class Year extends React.PureComponent<YearProps> {
           [classes.selected]: selected,
           [classes.disabled]: disabled,
         })}
-        tabIndex={disabled ? -1 : 0}
+        tabIndex={-1}
         onClick={this.handleClick}
         onKeyPress={this.handleClick}
         color={selected ? 'primary' : 'default'}
