@@ -1,4 +1,5 @@
 import * as React from 'react';
+import EventListener from 'react-event-listener';
 
 import { createStyles, WithStyles, withStyles } from '@material-ui/core/styles';
 import { withUtils, WithUtilsProps } from '../../_shared/WithUtils';
@@ -13,12 +14,14 @@ export interface MonthSelectionProps extends WithUtilsProps, WithStyles<typeof s
   onChange: (date: MaterialUiPickersDate) => void;
   disablePast?: boolean | null | undefined;
   disableFuture?: boolean | null | undefined;
+  allowKeyboardControl?: boolean;
 }
 
 export class MonthSelection extends React.PureComponent<MonthSelectionProps> {
   public static defaultProps = {
     minDate: new Date('1900-01-01'),
     maxDate: new Date('2100-01-01'),
+    allowKeyboardControl: true,
   };
 
   public onMonthSelect = (month: number) => {
@@ -44,16 +47,40 @@ export class MonthSelection extends React.PureComponent<MonthSelectionProps> {
 
     const isBeforeFirstEnabled = utils.isBefore(month, firstEnabledMonth);
     const isAfterLastEnabled = utils.isAfter(month, lastEnabledMonth);
-
     return isBeforeFirstEnabled || isAfterLastEnabled;
   };
 
+  public setMonth = (date: MaterialUiPickersDate) => {
+    const { utils } = this.props;
+    if (date && !this.shouldDisableMonth(date)) {
+      this.onMonthSelect(utils.getMonth(date));
+    }
+  };
+
+  public handleKeyDown = (event: KeyboardEvent) => {
+    const { date, utils } = this.props;
+    switch (event.key) {
+      case 'ArrowLeft':
+        this.setMonth(utils.addDays(date, -31));
+        break;
+      case 'ArrowRight':
+        this.setMonth(utils.addDays(date, 31));
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+  };
+
   public render() {
-    const { date, classes, utils } = this.props;
+    const { allowKeyboardControl, date, classes, utils } = this.props;
     const currentMonth = utils.getMonth(date);
 
     return (
       <div className={classes.container}>
+        {allowKeyboardControl && <EventListener target="window" onKeyDown={this.handleKeyDown} />}
+
         {utils.getMonthArray(date).map(month => {
           const monthNumber = utils.getMonth(month);
           const monthText = utils.format(month, 'MMM');
