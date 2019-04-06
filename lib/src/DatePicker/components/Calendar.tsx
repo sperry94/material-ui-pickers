@@ -69,18 +69,24 @@ export class Calendar extends React.Component<CalendarProps, CalendarState> {
     const { utils, date: nextDate } = nextProps;
 
     if (!utils.isEqual(nextDate, state.lastDate)) {
+      const nextYear = utils.getYear(nextDate);
+      const lastYear = utils.getYear(state.lastDate || nextDate);
       const nextMonth = utils.getMonth(nextDate);
       const lastMonth = utils.getMonth(state.lastDate || nextDate);
+
+      let slideDirection: SlideDirection;
+      if (nextYear === lastYear && nextMonth === lastMonth) {
+        slideDirection = state.slideDirection;
+      } else if (nextYear > lastYear || (nextYear === lastYear && nextMonth > lastMonth)) {
+        slideDirection = 'left';
+      } else {
+        slideDirection = 'right';
+      }
 
       return {
         lastDate: nextDate,
         currentMonth: nextProps.utils.startOfMonth(nextDate),
-        // prettier-ignore
-        slideDirection: nextMonth === lastMonth
-          ? state.slideDirection
-          : nextMonth > lastMonth
-            ? 'left'
-            : 'right'
+        slideDirection,
       };
     }
 
@@ -171,7 +177,26 @@ export class Calendar extends React.Component<CalendarProps, CalendarState> {
   };
 
   public handleKeyDown = (event: KeyboardEvent) => {
+    const { currentMonth } = this.state;
     const { theme, date, utils } = this.props;
+
+    const keyShouldBeHandled =
+      event.key === 'ArrowUp' ||
+      event.key === 'ArrowDown' ||
+      event.key === 'ArrowLeft' ||
+      event.key === 'ArrowRight';
+
+    if (!keyShouldBeHandled) {
+      return;
+    }
+
+    if (
+      utils.getYear(currentMonth) !== utils.getYear(date) ||
+      utils.getMonth(currentMonth) !== utils.getMonth(date)
+    ) {
+      this.moveToDay(currentMonth);
+      return;
+    }
 
     switch (event.key) {
       case 'ArrowUp':

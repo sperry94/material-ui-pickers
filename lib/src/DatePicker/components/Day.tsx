@@ -43,7 +43,7 @@ class Day extends React.PureComponent<DayProps> {
     });
 
     return (
-      <IconButton className={className} tabIndex={hidden || disabled ? -1 : 0} {...other}>
+      <IconButton className={className} tabIndex={-1} {...other}>
         {children}
       </IconButton>
     );
